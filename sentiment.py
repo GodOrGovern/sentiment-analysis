@@ -3,10 +3,14 @@ import os
 import datetime
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.nn.functional import softmax
+import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.tokenize import sent_tokenize
 from sklearn.preprocessing import MinMaxScaler
 
+# Required nltk files, only downloaded on first use
+nltk.download('vader_lexicon')
+nltk.download('punkt')
 
 model = AutoModelForSequenceClassification.from_pretrained('ProsusAI/finBERT')
 tokenizer = AutoTokenizer.from_pretrained('ProsusAI/finBERT')
@@ -32,6 +36,7 @@ def analyze_sentiment(text):
 
     Returns:
         Sentiment of 'text'
+        Appears to be a list of [positive, negative, neutral] sentiment values between 0 and 1
     '''
     inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
     outputs = model(**inputs)
