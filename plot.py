@@ -33,7 +33,8 @@ def plot_overall_weighted_sentiment(directory):
         'Weighted Sentiment Score', 'Keyword', 'Keyword Category'
     
     Result:
-        
+        Line graph showing weighted sentiment scores for a given company over time.
+        Saved as a .png to directory containing company sentiment files.
 
     Returns:
         None
@@ -68,7 +69,9 @@ def plot_individual_weighted_sentiment(directory):
         'Weighted Sentiment Score', 'Keyword', 'Keyword Category'
     
     Result:
-
+        Line graph showing weighted sentiment scores for a given company over time.
+        Scores are broken up by category (eg Finanical Metric, Macro, Sector Trend)
+        Saved as a .png to directory containing company sentiment files.
 
     Returns:
         None

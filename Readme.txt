@@ -26,7 +26,7 @@ Overview:
     
     calculate_weighted_sentiment() adds a weighted sentiment score to each Excel file using keyword weights.
 
-    plot_{type)_weighted_sentiment() functions plot the sentiment data in each Excel file.
+    plot_{type}_weighted_sentiment() functions plot the weighted sentiment data in each Excel file.
 
 
 main.py:
@@ -50,11 +50,6 @@ Other files/directories:
 
     example_companies.xlsx:
         Workbook of company transcripts. One company per sheet, one transcript per column.
-    
-    example_scores/:
-        The output of process_workbook("example_companies.xlsx", "keywords.xlsx", (2021, 3)).
-        Useful for testing weighted sentiment and plotting functions.
-        Would take several hours to reproduce.
     
     example_scores.zip:
         Contains the output of process_workbook("example_companies.xlsx", "keywords.xlsx", (2021, 3)).
