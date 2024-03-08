@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 def group_files_by_company(directory):
     '''
     Args:
-        directory: path to directory with excel sentiment files.
-        Files naming format CC_{company}_Q{quarter}{year}_{month}_{day}_{year}.xlsx"
+        directory: path to directory with sentiment excel files for a given company
+        File naming format CC_{company}_Q{quarter}{year}_{month}_{day}_{year}.xlsx"
 
     Returns:
         files_by_company: dictionary with company names as keys and their
-        associated files as items.
+        associated (files, quarter_year of files) as items.
     '''
     files_by_company = {}
     for filename in os.listdir(directory):
@@ -29,12 +29,12 @@ def group_files_by_company(directory):
 def plot_overall_weighted_sentiment(directory):
     '''
     Args:
-        directory: path to directory of excel files with headers such as:
-        'Weighted Sentiment Score', 'Keyword', 'Keyword Category'
+        directory: path to directory of sentiment excel files for a given company. 
+        Each file has headers such as: 'Weighted Sentiment Score', 'Keyword', 'Keyword Category'
     
     Result:
         Line graph showing weighted sentiment scores for a given company over time.
-        Saved as a .png to directory containing company sentiment files.
+        Saved as a .png to 'directory'
 
     Returns:
         None
@@ -65,20 +65,20 @@ def plot_overall_weighted_sentiment(directory):
 def plot_individual_weighted_sentiment(directory):
     '''
     Args:
-        directory: path to directory of excel files with headers such as:
-        'Weighted Sentiment Score', 'Keyword', 'Keyword Category'
+        directory: path to directory of sentiment excel files for a given company. 
+        Each file has headers such as: 'Weighted Sentiment Score', 'Keyword', 'Keyword Category'
     
     Result:
         Line graph showing weighted sentiment scores for a given company over time.
         Scores are broken up by category (eg Finanical Metric, Macro, Sector Trend)
-        Saved as a .png to directory containing company sentiment files.
+        Saved as a .png to 'directory'
 
     Returns:
         None
     '''
     files_by_company = group_files_by_company(directory)
 
-    for company, file_quarter_pairs in files_by_company.items():
+    for company, file_quarter_pairs in files_by_company:
         print(f'Processing files for company: {company}')
 
         plt.clf()

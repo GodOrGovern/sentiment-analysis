@@ -24,7 +24,7 @@ Overview:
     process_workbook() runs sentiment analysis on each transcript, using keywords to select relevant paragraphs.
     Paragraphs, keywords, sentiment scores, and other data are stored in an Excel file. One file per transcript.
     
-    calculate_weighted_sentiment() adds a weighted sentiment score to each Excel file using keyword weights.
+    calculate_weighted_sentiment() adds a 'Weighted Sentiment Score' column to each Excel file using keyword weights.
 
     plot_{type}_weighted_sentiment() functions plot the weighted sentiment data in each Excel file.
 
@@ -34,7 +34,7 @@ main.py:
 
 sentiment.py:
     Used to analyze sentiment of transcripts.
-    Primary functions: 'process_workbook' and 'calculate_weighted_sentiment'.
+    Primary functions: 'process_workbook' and 'calculate_weighted_sentiment'
 
 plot.py
     Used to plot sentiment values.
@@ -55,5 +55,3 @@ Other files/directories:
         Contains the output of process_workbook("example_companies.xlsx", "keywords.xlsx", (2021, 3)).
         Useful for testing weighted sentiment and plotting functions.
         Would take several hours to reproduce.
-
-

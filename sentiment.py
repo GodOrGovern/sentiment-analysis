@@ -65,7 +65,7 @@ def process_workbook(workbook_filename, keywords_filename, last_date=None):
         workbook_filename:  Name of Excel file containing workbook of companies, one company per worksheet.
                             Each column holds a transcript for one quarter's earning call.
 
-        keywords_filename:  Name of Excel file with keywords. Headers 'Keyword' and 'Key Word Category'
+        keywords_filename:  Name of Excel file with keywords. Must have columns 'Keyword' and 'Key Word Category'
 
         last_date:  Given as (year, quarter)
                     If specified, the last quarter to process per company. Otherwise process all.
@@ -118,7 +118,7 @@ def process_transcript(transcript_df, keywords_df):
     '''
     Args:
         transcript_df:  dataframe of transcript, essentially a list of paragraphs
-        keywords_df:    dataframe with 'Keyword' and 'Key Word Category'
+        keywords_df:    dataframe with headers 'Keyword' and 'Key Word Category'
 
     Returns:
         output_df:  Dataframe with headers: 'Key Word Category', 'Keyword', 'Paragraph', 
@@ -172,14 +172,15 @@ def calculate_weighted_sentiment(sentiment_filename, keywords_filename):
     '''
     Args:
         sentiment_filename: Name of Excel file with sentiment results for a transcript.
-                            Headers such as: 'Sentiment Score', 'Keyword', 'Paragraph' 
+                            Columns such as: 'Sentiment Score', 'Keyword', 'Paragraph' 
 
         keywords_filename:  Name of Excel file with keywords and their weights (under 'Proposed').
-                            Headers such as: 'Keyword', 'Proposed'
+                            Must contain 'Proposed' (ie keyword weights) 
 
     Result:
-        Adds columns 'Proposed' and 'Weighted Sentiment Score' to 'sentiment_filename', which contains the original
-        'Sentiment Score' multiplied by 'Proposed' weight for 'Keyword', scaled to between 0 and 1.
+        Adds (at least) columns 'Proposed' and 'Weighted Sentiment Score' to 'sentiment_filename'.
+        'Weighted Sentiment Score' equals the original 'Sentiment Score' multiplied by 'Proposed' weight
+        for relevant 'Keyword', scaled to between 0 and 1.
 
     Returns:
         None
