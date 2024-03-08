@@ -7,13 +7,15 @@ Programs to perform sentiment analysis on company transcripts (eg 10-Q, 10-K) an
 Install required packages  
 `pip install -r requirements.txt`
 
-Unzip example_scores.zip.  
-Run main.py to ensure everything is working (may take a few minutes).  
+Unzip example_scores.zip.
+\
+Run main.py to ensure everything is working (may take a few minutes).
+\
 Check in-line documentation for function behavior.
 
 ## Important Functions
 
-process_workbook() runs sentiment analysis on each transcript, using keywords to select relevant paragraphs. Paragraphs, keywords, sentiment scores, and other data are stored in an Excel file. One file per transcript.
+process_workbook() runs sentiment analysis on each transcript, using keywords to select relevant paragraphs. Paragraphs, keywords, sentiment scores, and other data are stored in Excel files. One file per transcript.
 
 calculate_weighted_sentiment() adds a 'Weighted Sentiment Score' column to each Excel file using keyword weights.
 
