@@ -8,7 +8,7 @@ Install required packages
 `pip install -r requirements.txt`
 
 Unzip example_scores.zip.  
-Run main.py to ensure everything is working (may take a few minutes).
+Run main.py to ensure everything is working (may take a few minutes).  
 Check in-line documentation for function behavior.
 
 ## Important Functions
