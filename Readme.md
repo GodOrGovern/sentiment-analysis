@@ -23,16 +23,16 @@ plot_{type}_weighted_sentiment() functions plot the weighted sentiment data in e
 
 ### main.py
 
-Just a quick example of basic use. Run to ensure everything is working.
+Quick example of basic use. Run to ensure everything is working.
 
 ### sentiment.py:
 
-Used to analyze sentiment of transcripts.
+Used to analyze sentiment of transcripts.  
 Primary functions: 'process_workbook' and 'calculate_weighted_sentiment'
 
 ### plot.py
 
-Used to plot sentiment values.
+Used to plot sentiment values.  
 Primary functions: 'plot_individual_weighted_sentiment' and 'plot_overall_weighted_sentiment'
 
 ### weighted_keywords.xlsx:
@@ -49,4 +49,4 @@ Workbook of company transcripts. One company per sheet, one transcript per colum
 
 ### example_scores.zip:
 
-Contains the output of process_workbook("example_companies.xlsx", "keywords.xlsx", (2021, 3)). Useful for testing weighted sentiment and plotting functions. Would take several hours to reproduce.
+Contains the output of process_workbook("example_companies.xlsx", "keywords.xlsx", (2021, 3)). Useful for testing weighted sentiment and plotting functions.
