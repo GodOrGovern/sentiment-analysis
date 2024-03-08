@@ -78,7 +78,7 @@ def plot_individual_weighted_sentiment(directory):
     '''
     files_by_company = group_files_by_company(directory)
 
-    for company, file_quarter_pairs in files_by_company:
+    for company, file_quarter_pairs in files_by_company.items():
         print(f'Processing files for company: {company}')
 
         plt.clf()
