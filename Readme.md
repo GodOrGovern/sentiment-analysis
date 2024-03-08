@@ -13,14 +13,6 @@ Run main.py to ensure everything is working (may take a few minutes).
 \
 Check in-line documentation for function behavior.
 
-## Important Functions
-
-process_workbook() runs sentiment analysis on each transcript, using keywords to select relevant paragraphs. Paragraphs, keywords, sentiment scores, and other data are stored in Excel files. One file per transcript.
-
-calculate_weighted_sentiment() adds a 'Weighted Sentiment Score' column to each Excel file using keyword weights.
-
-plot_{type}_weighted_sentiment() functions plot the weighted sentiment data in each Excel file.
-
 ## Files
 
 ### main.py
