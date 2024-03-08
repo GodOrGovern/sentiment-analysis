@@ -19,7 +19,7 @@ Check in-line documentation for function behavior.
 
 Quick example of basic use. Run to ensure everything is working.
 
-### sentiment.py:
+### sentiment.py
 
 Used to analyze sentiment of transcripts.  
 Primary functions: 'process_workbook' and 'calculate_weighted_sentiment'
@@ -29,18 +29,18 @@ Primary functions: 'process_workbook' and 'calculate_weighted_sentiment'
 Used to plot sentiment values.  
 Primary functions: 'plot_individual_weighted_sentiment' and 'plot_overall_weighted_sentiment'
 
-### weighted_keywords.xlsx:
+### weighted_keywords.xlsx
 
 Excel file containing keywords, categories, sectors, and proposed keyword weights. May only contain a subset of total keywords (hence keywords.xlsx).
 
-### keywords.xlsx:
+### keywords.xlsx
 
 Excel file containing keywords and categories without weights or sectors.
 
-### example_companies.xlsx:
+### example_companies.xlsx
 
 Workbook of company transcripts. One company per sheet, one transcript per column.
 
-### example_scores.zip:
+### example_scores.zip
 
 Contains the output of process_workbook("example_companies.xlsx", "keywords.xlsx", (2021, 3)). Useful for testing weighted sentiment and plotting functions.
