@@ -28,6 +28,10 @@ Overview:
 
     plot_{type}_weighted_sentiment() functions plot the weighted sentiment data in each Excel file.
 
+Next steps:
+    Migrate from excel to google datastore
+    Build google connectivity and functionality
+    Make plotting more dynamic
 
 main.py:
     Just a quick example of basic use. Run to ensure everything is working.
