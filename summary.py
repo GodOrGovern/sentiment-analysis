@@ -48,4 +48,11 @@ def summarize_company_quarter(company, quarter):
     summary["Period"] = quarter
     return summary
 
+def upload_summary(summary):
+    entity = datastore.Entity(client.key("Summary"))
+    for key, item in summary.items():
+        entity[key] = item
+    client.put(entity)
 
+summary = summarize_company_quarter("WM US", "Q22023")
+upload_summary(summary)
