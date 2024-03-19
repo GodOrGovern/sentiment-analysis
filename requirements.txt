@@ -5,3 +5,4 @@ nltk
 scikit-learn
 openpyxl
 matplotlib
+google-cloud-datastore
