@@ -54,5 +54,14 @@ def upload_summary(summary):
         entity[key] = item
     client.put(entity)
 
-summary = summarize_company_quarter("WM US", "Q22023")
-upload_summary(summary)
+def upload_companies():
+    quarters = ["Q32021", "Q42021", "Q12022", "Q22022", "Q32022", "Q42022", "Q12023", "Q22023"]
+    # TODO find list of companies
+    companies = ["WM US"]
+
+    for company in companies:
+        for quarter in quarters:
+            summary = summarize_company_quarter(company, quarter)
+            upload_summary(summary)
+
+upload_companies()
