@@ -29,6 +29,11 @@ Primary functions: 'process_workbook' and 'calculate_weighted_sentiment'
 Used to plot sentiment values.  
 Primary functions: 'plot_individual_weighted_sentiment' and 'plot_overall_weighted_sentiment'
 
+### summary.py
+
+Used to summarize quarterly sentiment scores.
+Primary functions: summarize_company_quarter
+
 #### weighted_keywords.xlsx
 
 Excel file containing keywords, categories, sectors, and proposed keyword weights. May only contain a subset of total keywords (hence keywords.xlsx).

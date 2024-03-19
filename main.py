@@ -1,6 +1,7 @@
 import os
 from sentiment import process_workbook, calculate_weighted_sentiment
 from plot import plot_individual_weighted_sentiment, plot_overall_weighted_sentiment
+from summary import summarize_company_quarter
 
 # Only processes first transcript (ie Q3 2023) for each company
 process_workbook("example_companies.xlsx", "weighted_keywords.xlsx", last_date=(2023, 2))
@@ -15,3 +16,6 @@ for company in os.listdir(f'./{scores_directory}'):
     plot_individual_weighted_sentiment(company_path)
     plot_overall_weighted_sentiment(company_path)
 
+# summarizes scores for Q22023 WM US call
+summary = summarize_company_quarter("WM US", "Q22023")
+print(summary)

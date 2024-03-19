@@ -47,8 +47,5 @@ def summarize_company_quarter(company, quarter):
     summary["Yahoo Ticker"] = company
     summary["Period"] = quarter
     return summary
-    
-summary = summarize_company_quarter("WM US", "Q22023")
-print(summary)
 
 
