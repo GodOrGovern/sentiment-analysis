@@ -1,217 +1,242 @@
 import pandas as pd
-import os
-import datetime
+import docx
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.nn.functional import softmax
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.tokenize import sent_tokenize
-from sklearn.preprocessing import MinMaxScaler
+from google.cloud import datastore
 
 # Required nltk files, only downloaded on first use
 nltk.download('vader_lexicon')
 nltk.download('punkt')
 
-model = AutoModelForSequenceClassification.from_pretrained('ProsusAI/finBERT')
-tokenizer = AutoTokenizer.from_pretrained('ProsusAI/finBERT')
-sia = SentimentIntensityAnalyzer()
+# FRONTEND SHOULD ONLY INTERFACE WITH Handler.process_request()
+# FILE HANDLING AND OTHER SPECIFICS MAY NEED TO CHANGE DEPENDING ON FRONTEND
+
+# TODO: Add configuration file (for database key, weighting, datastore namespace, sentiment model)
+# TODO: Change SentimentAnalyzer.weight_sentiment() implementation
+# TODO: Implement DataManager.save_as_csv()
+# TODO: Implement Summary class
+# TODO: Come up with standard for keyword file (eg standard headers) and datastore entries (eg names of properties)
 
 
-def split_text(text, chunk_size):
-    '''
-    Args:
-        text:       string of text
-        chunk_size: size of chunks to split 'text' into
+# Handles the process of receiving a transcript, analyzing for sentiment,
+# and uploading results to datastore
+class Handler:
+    def __init__(self):
+        self.sentiment_analyzer = SentimentAnalyzer()
+        self.database = Database("key.json")
+        self.transcript_processor = None
+        self.keyword_analyzer = None
+        self.data_manager = None
 
-    Returns:
-        list of 'text' split into strings of length 'chunk_size'
-    '''
-    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    def process_request(self, transcript_file_path, keywords_file_path, company, date):
+        self.transcript_processor = TranscriptProcessor(transcript_file_path)
+        self.keyword_analyzer = KeywordAnalyzer(keywords_file_path)
+        self.data_manager = DataManager()
 
-
-def analyze_sentiment(text):
-    '''
-    Args:
-        text: string of text
-
-    Returns:
-        Sentiment of 'text'
-        Appears to be a list of [positive, negative, neutral] sentiment values between 0 and 1
-    '''
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-    outputs = model(**inputs)
-    probabilities = softmax(outputs.logits, dim=1)
-    return probabilities[0]
-
-
-def get_quarter(month):
-    '''
-    Args:
-        month: month of the year
-
-    Returns:
-        Financial quarter of 'month'
-    '''
-    if month <= 3:
-        return 1
-    elif month <= 6:
-        return 2
-    elif month <= 9:
-        return 3
-    else:
-        return 4
-
-# parent directory for sentiment scores
-scores_directory = "scores"
-
-def process_workbook(workbook_filename, keywords_filename, last_date=None):
-    ''' 
-    Args:  
-        workbook_filename:  Name of Excel file containing workbook of companies, one company per worksheet.
-                            Each column holds a transcript for one quarter's earning call.
-
-        keywords_filename:  Name of Excel file with keywords. Must have columns 'Keyword' and 'Key Word Category'
-
-        last_date:  Given as (year, quarter)
-                    If specified, the last quarter to process per company. Otherwise process all.
-                    Example: 'last_date = (2021, 3)' means process each worksheet/company from
-                             most recent call until Q3 of 2021
-
-    Result:
-        Creates one excel sheet for each column of each worksheet.
-        Excel sheets have headers:  'Key Word Category', 'Keyword', 'Paragraph', 
-                                    'Sentiment Score', 'Sentiment Magnitude' 
-        Sheets are stored under ./{scores_directory}/{company_name}/{sheet_name}
-
-    Returns:
-        None
-    '''
-    keywords_df = pd.read_excel(keywords_filename)
-    workbook = pd.ExcelFile(workbook_filename)
-
-    for sheet_name in workbook.sheet_names:
-        sheet_df = pd.read_excel(workbook, sheet_name=sheet_name)
-
-        # Create a directory locally
-        if not os.path.exists(f'./{scores_directory}/{sheet_name}'):
-            os.makedirs(f'./{scores_directory}/{sheet_name}')
-
-        for column in sheet_df.columns:
-            # Hacky workaround to get date
-            if isinstance(sheet_df[column][0], datetime.datetime):
-                date = sheet_df[column][0]
-            else:
-                date = pd.to_datetime(column.removeprefix('FINAL TRANSCRIPT'))
-
-            quarter = get_quarter(date.month)
-
-            # stop processing sheet if earlier than 'last_date'
-            if last_date and (date.year, quarter) < last_date:
-                break
-
-            # get output name and skip column if it already exists (avoid redundant processing)
-            output_filename = f'CC_{sheet_name}_Q{quarter}{date.year}_{date.month}_{date.day}_{date.year}.xlsx'
-            if os.path.exists(f'./{scores_directory}/{sheet_name}/{output_filename}'):
-                continue
-
-            # column and save the output to excel file
-            output_df = process_transcript(sheet_df[column], keywords_df)
-            output_df.to_excel(f'./{scores_directory}/{sheet_name}/{output_filename}', index=False)
-
-
-def process_transcript(transcript_df, keywords_df):
-    '''
-    Args:
-        transcript_df:  dataframe of transcript, essentially a list of paragraphs
-        keywords_df:    dataframe with headers 'Keyword' and 'Key Word Category'
-
-    Returns:
-        output_df:  Dataframe with headers: 'Key Word Category', 'Keyword', 'Paragraph', 
-                                            'Sentiment Score', 'Sentiment Magnitude'
-    '''
-    output_df = pd.DataFrame(columns=['Key Word Category', 'Keyword', 'Paragraph', 'Sentiment Score', 'Sentiment Magnitude'])
-
-    for index, row in keywords_df.iterrows():
-        keyword = row['Keyword']
-        category = row['Key Word Category']
-
-        paragraphs = transcript_df.apply(lambda x: str(x) if keyword.lower() in str(x).lower() else None).dropna()
-
-        # some paragraphs contain multiple keywords and are therefore processed multiple times
-        # TODO: avoid redundant processing
+        paragraphs = transcript_processor.get_paragraphs()
         for paragraph in paragraphs:
-            chunks = split_text(paragraph, 1024)
-            for chunk in chunks:
-                sentiment_score, total_magnitude = process_chunk(chunk)
-                new_row = {'Key Word Category': category, 'Keyword': keyword, 'Paragraph': chunk, 
-                            'Sentiment Score': sentiment_score.item(), 'Sentiment Magnitude': total_magnitude}
-                output_df = pd.concat([output_df, pd.DataFrame([new_row])], ignore_index=True)
+            self.process_paragraph(paragraph)
 
-    return output_df
+        for data in data_manager.get_data():
+            self.database.create_entity("Sentiment_Details", data)
+
+    def process_paragraph(self, paragraph):
+        found_keywords = self.keyword_analyzer.find_keywords(paragraph)
+        
+        if not found_keywords:
+            return
+
+        score, magnitude = self.sentiment_analyzer.analyze_sentiment(paragraph)
+        for entry in found_keywords:
+            weight = self.keyword_analyzer.get_weight(entry)
+            weighted_score = self.sentiment_analyzer.weight_sentiment(score.item(), weight)
+
+            self.data_manager.add_data(
+                Paragraph = paragraph,
+                Score = score.item(),
+                Magnitude = magnitude,
+                WeightedScore = weighted_score,
+                **entry
+            )
 
 
-def process_chunk(chunk):
-    '''
-    Args:
-        chunk: string of text, presumably a paragraph
+# Opens and parses transcript into paragraphs
+# Paragraphs are stored as list of strings
+class TranscriptProcessor:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.document = docx.Document(file_path)
+        self.paragraphs = self.split_paragraphs()
 
-    Returns:
-        Tuple of (sentiment_score, total_magnitude)
-        sentiment_score: sentiment of 'chunk'
-        total_magnitude: magnitude of 'chunk' sentiment
-    '''
-    probabilities = analyze_sentiment(chunk)
-    sentiment_score = (probabilities[1] + (probabilities[2] * 2) + (probabilities[0] * 3)) - 2
+    def split_paragraphs(self):
+        '''
+            Args: None
+
+            Returns:
+                self.document as a list of a paragraphs
+        '''
+        paragraphs = []
+        for para in self.document.paragraphs:
+            if para.text:
+                paragraphs.append(para.text)
+        return paragraphs
+
+    def get_paragraphs(self):
+        ''' Getter for self.paragraphs '''
+        return self.paragraphs
+
+
+# Opens and saves keywords as list of dicts
+class KeywordAnalyzer:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.keywords = self.read_file()
+        self.importance_weights = { 'Very Important': 1.5,
+                                    'Important': 1.0,
+                                    'Less so important': 0.5 } 
+
+    def read_file(self):
+        '''
+            Returns:
+                The keyword excel file at self.file_path saved as a list of dictionaries.
+                Example dictionary: {Keyword: 'Assets', Category: 'Business', ...}
+        '''
+        return pd.read_excel(self.file_path).to_dict('records')
+
+    def find_keywords(self, text):
+        '''
+            Args:
+                text: string of text
+
+            Returns:
+                List of dictionaries for all keywords found in text.
+        '''
+        found = []
+        text = text.lower()
+        for entry in self.keywords:
+            keyword = entry.get('Keyword')
+            if keyword.lower() in text:
+                found.append(entry)
+        return found
+
+    def get_weight(self, entry):
+        '''
+            Args:
+                entry: dictionary entry for a keyword
+
+            Returns:
+                The weight for that keyword if there is one, and None otherwise
+        '''
+        weight = entry.get('Weight')
+        if weight in self.importance_weights:
+            return self.importance_weights.get(weight)
+        else:
+            return weight
+
+
+# Analyzes sentiment of text (does not store any data)
+class SentimentAnalyzer:
+    def __init__(self):
+        self.model = AutoModelForSequenceClassification.from_pretrained('ProsusAI/finBERT')
+        self.tokenizer = AutoTokenizer.from_pretrained('ProsusAI/finBERT')
+        self.sia = SentimentIntensityAnalyzer()
+
+    def get_probabilities(self, text):
+        '''
+            Args:
+                text: string of text
+
+            Returns:
+                Sentiment probabilities of 'text'
+                Appears to be a list of [positive, negative, neutral] sentiment values between 0 and 1
+        '''
+        inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        outputs = self.model(**inputs)
+        probabilities = softmax(outputs.logits, dim=1)
+        return probabilities[0]
+
+    def analyze_sentiment(self, text):
+        '''
+            Args:
+                text: string of text, presumably a paragraph
+
+            Returns:
+                Tuple of (sentiment_score, total_magnitude)
+                sentiment_score: sentiment of 'text'
+                total_magnitude: magnitude of 'text' sentiment
+        '''
+        probabilities = self.get_probabilities(text)
+        sentiment_score = (probabilities[1] + (probabilities[2] * 2) + (probabilities[0] * 3)) - 2
+        
+        sentences = sent_tokenize(text)
+        magnitudes = []
+        for sentence in sentences:
+            sentence_magnitude = abs(self.sia.polarity_scores(sentence)['compound'])
+            magnitudes.append(sentence_magnitude)
+        total_magnitude = sum(magnitudes)
+        
+        return sentiment_score, total_magnitude
+
+    def weight_sentiment(self, sentiment, weight):
+        '''
+            Args:
+                sentiment:  sentiment score
+                weight:     weight to apply to 'sentiment' score 
+
+            Returns:
+                Weighted sentiment score (ie 'sentiment' score scaled/adjusted by 'weight')
+        '''
+        # TODO: implement weighting
+        if weight is None:
+            return None
+        return sentiment * weight
+
+
+# Stores (sentiment) data as list of dicts, one dict per keyword per paragraph
+# Each dict contains at least "Keyword", "Paragraph", "Magnitude", and "Score"
+class DataManager:
+    def __init__(self):
+        self.data = []
+
+    def add_data(self, **kwargs):
+        '''
+            Args:
+                kwargs: dictionary containing a paragraph, the keyword found in that found paragraph,
+                the paragraph sentiment score, and related information
+
+            Results:
+                Appends dictionary to self.data
+        '''
+        self.data.append(kwargs)
     
-    sentences = sent_tokenize(chunk)
-    magnitudes = []
-    for sentence in sentences:
-        sentence_magnitude = abs(sia.polarity_scores(sentence)['compound'])
-        magnitudes.append(sentence_magnitude)
-    total_magnitude = sum(magnitudes)
+    def get_data(self):
+        ''' Getter for self.data '''
+        return self.data
+
+
+# Interfaces with datastore
+class Database:
+    def __init__(self, key_filepath):
+        # Client is currently initialized using json file with key
+        # If environment variable is set, use: datastore.Client()
+        self.client = datastore.Client.from_service_account_json(key_filepath)
+
+    def create_entity(self, kind, data, namespace):
+        '''
+            Args:
+                kind:       string containing datastore 'kind' for 'data'
+                data:       data to upload to datastore
+                namespace:  string containing datastore 'namespace' for 'data'
+        
+            Results:
+                Uploads 'data' to datastore under corresponding 'kind' and 'namespace'
+        '''
+        entity = self.client.entity(self.client.key(kind, namespace=namespace))
+        entity.update(data)
+        self.client.put(entity=entity)
+
     
-    return sentiment_score, total_magnitude
-
-
-def calculate_weighted_sentiment(sentiment_filename, keywords_filename):
-    '''
-    Args:
-        sentiment_filename: Name of Excel file with sentiment results for a transcript.
-                            Columns such as: 'Sentiment Score', 'Keyword', 'Paragraph' 
-
-        keywords_filename:  Name of Excel file with keywords and their weights (under 'Proposed').
-                            Must contain 'Proposed' (ie keyword weights) 
-
-    Result:
-        Adds (at least) columns 'Proposed' and 'Weighted Sentiment Score' to 'sentiment_filename'.
-        'Weighted Sentiment Score' equals the original 'Sentiment Score' multiplied by 'Proposed' weight
-        for relevant 'Keyword', scaled to between 0 and 1.
-
-    Returns:
-        None
-    '''
-    # Read the files
-    sentiment_df = pd.read_excel(sentiment_filename)
-    keywords_df = pd.read_excel(keywords_filename)
-
-    # Map the qualitative assessments to quantitative weights
-    importance_weights = {
-        'Very Important': 1.5,
-        'Important': 1.0,
-        'Less Important': 0.5
-    }
-    keywords_df['Weight'] = keywords_df['Proposed'].map(importance_weights)
-
-    # Merge the sentiment DataFrame with the keyword weights DataFrame and drop duplicate columns
-    sentiment_df = pd.merge(sentiment_df, keywords_df, left_on='Keyword', right_on='Keyword', how='left', 
-                            suffixes=('', '_DROP')).filter(regex='^(?!.*_DROP)')
-
-    # Calculate the proposed sentiment score using keyword weights
-    sentiment_df['Weighted Sentiment Score'] = sentiment_df['Sentiment Score'] * sentiment_df['Weight']
-
-    # Normalize the weighted sentiment score to be between 0 and 1
-    scaler = MinMaxScaler()
-    sentiment_df['Weighted Sentiment Score'] = scaler.fit_transform(sentiment_df[['Weighted Sentiment Score']])
-
-    # Save the DataFrame with the new column to the same Excel file
-    sentiment_df.to_excel(sentiment_filename, index=False)
+    

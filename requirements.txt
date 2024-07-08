@@ -1,4 +1,5 @@
 pandas
+python-docx
 transformers
 torch
 nltk

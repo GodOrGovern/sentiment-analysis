@@ -110,3 +110,52 @@ def plot_individual_weighted_sentiment(directory):
         plt.title(f'Average Weighted Sentiment Score per Quarter for {company}')
         plt.legend()
         plt.savefig(os.path.join(directory, f'{company}_Weighted_Sentiment_Categories.png'))
+
+def plot_individual_unweighted_sentiment(directory):
+    '''
+    Args:
+        directory: path to directory of sentiment excel files for a given company. 
+        Each file has headers such as: 'Sentiment Score', 'Keyword', 'Keyword Category'
+    
+    Result:
+        Line graph showing unweighted sentiment scores for a given company over time.
+        Scores are broken up by category (eg Finanical Metric, Macro, Sector Trend)
+        Saved as a .png to 'directory'
+
+    Returns:
+        None
+    '''
+    files_by_company = group_files_by_company(directory)
+
+    for company, file_quarter_pairs in files_by_company.items():
+        print(f'Processing files for company: {company}')
+
+        plt.clf()
+        sentiment_scores_by_category = {}
+
+        # Sort file_quarter_pairs based on quarter and year
+        file_quarter_pairs.sort(key=lambda x: (int(x[1][2:]), int(x[1][1:2])))
+
+        for filename, quarter_year in file_quarter_pairs:
+            df = pd.read_excel(os.path.join(directory, filename))
+
+            category_scores = df.groupby('Key Word Category')['Sentiment Score'].mean()
+
+            # Update the sentiment_scores_by_category dictionary
+            for category, score in category_scores.items():
+                if category in ["Financial metric - All", "Macro", "Sector trend"]:
+                    if category not in sentiment_scores_by_category:
+                        sentiment_scores_by_category[category] = []
+                    sentiment_scores_by_category[category].append((quarter_year, score))
+
+        # Plot sentiment scores for each category
+        for category, scores in sentiment_scores_by_category.items():
+            quarters, category_scores = zip(*scores)
+            plt.plot(quarters, category_scores, label=category)
+
+        plt.ylim(0, 1)
+        plt.xlabel('Quarter')
+        plt.ylabel('Average Raw Sentiment Score')
+        plt.title(f'Average Raw Sentiment Score per Quarter for {company}')
+        plt.legend()
+        plt.savefig(os.path.join(directory, f'{company}_Raw_Sentiment_Categories.png'))

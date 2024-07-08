@@ -2,3 +2,7 @@ scores/
 example_scores/
 __pycache__/
 key.json
+keywords/
+Companies/
+companies2/
+old_sentiment.py
