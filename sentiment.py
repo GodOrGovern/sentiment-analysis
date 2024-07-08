@@ -1,5 +1,6 @@
 import pandas as pd
 import docx
+import csv
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.nn.functional import softmax
 import nltk
@@ -15,10 +16,9 @@ nltk.download('punkt')
 # FILE HANDLING AND OTHER SPECIFICS MAY NEED TO CHANGE DEPENDING ON FRONTEND
 
 # TODO: Add configuration file (for database key, weighting, datastore namespace, sentiment model)
-# TODO: Change SentimentAnalyzer.weight_sentiment() implementation
-# TODO: Implement DataManager.save_as_csv()
+# TODO: SentimentAnalyzer.weight_sentiment() implementation
 # TODO: Implement Summary class
-# TODO: Come up with standard for keyword file (eg standard headers) and datastore entries (eg names of properties)
+# TODO: Implement standard for constants in keyword file (eg headers, like "Keyword") and datastore entries (eg names of properties)
 
 
 # Handles the process of receiving a transcript, analyzing for sentiment,
@@ -36,12 +36,14 @@ class Handler:
         self.keyword_analyzer = KeywordAnalyzer(keywords_file_path)
         self.data_manager = DataManager()
 
-        paragraphs = transcript_processor.get_paragraphs()
+        paragraphs = self.transcript_processor.get_paragraphs()
         for paragraph in paragraphs:
             self.process_paragraph(paragraph)
 
-        for data in data_manager.get_data():
-            self.database.create_entity("Sentiment_Details", data)
+        for data in self.data_manager.get_data():
+            self.database.create_entity("Test", data)
+
+        self.data_manager.save_as_csv("test.csv")
 
     def process_paragraph(self, paragraph):
         found_keywords = self.keyword_analyzer.find_keywords(paragraph)
@@ -216,6 +218,22 @@ class DataManager:
         ''' Getter for self.data '''
         return self.data
 
+    def save_as_csv(self, target_file_path):
+        '''
+            Args:
+                target_file_path: File path for new CSV
+            
+            Results:
+                Saves the data in self.data as a CSV
+        '''
+        field_names = self.data[0].keys()
+
+        # Open the file in write mode
+        with open(target_file_path, mode='w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=field_names)
+            writer.writeheader()
+            writer.writerows(self.data)
+
 
 # Interfaces with datastore
 class Database:
@@ -224,7 +242,7 @@ class Database:
         # If environment variable is set, use: datastore.Client()
         self.client = datastore.Client.from_service_account_json(key_filepath)
 
-    def create_entity(self, kind, data, namespace):
+    def create_entity(self, kind, data, namespace=None):
         '''
             Args:
                 kind:       string containing datastore 'kind' for 'data'
