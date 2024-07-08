@@ -31,7 +31,20 @@ class Handler:
         self.keyword_analyzer = None
         self.data_manager = None
 
-    def process_request(self, transcript_file_path, keywords_file_path, company, date):
+    # Company and date are currently unused, need to coordinate with frontend on how
+    # those are passed. They should be added to datastore entries and used for csv filename
+    def process_request(self, transcript_file_path, keywords_file_path, company=None, date=None):
+        '''
+            Args:
+                transcript_file_path:   file path containing transcript to be analyzed
+                keywords_file_path:     file path containing keywords to be analyzed
+                company:                Ticker of company for transcript
+                date:                   Date of transcript
+
+            Results:
+                The transcript is broken into paragraphs which are searched for keywords and analyzed
+                for sentiment. The results are uploaded to datastore and saved as a CSV.
+        '''
         self.transcript_processor = TranscriptProcessor(transcript_file_path)
         self.keyword_analyzer = KeywordAnalyzer(keywords_file_path)
         self.data_manager = DataManager()
@@ -46,6 +59,16 @@ class Handler:
         self.data_manager.save_as_csv("test.csv")
 
     def process_paragraph(self, paragraph):
+        '''
+            Args:
+                paragraph: a string of text to be analyzed for sentiment
+        
+            Results:
+                Searches paragraph for keywords. If keyword(s) are found, analyzes paragraph
+                for sentiment score and magnitude. For each keyword, an entry is saved to 
+                the data manager containing the paragraph, score, magnitude, and information in 
+                the keyword entry.
+        '''
         found_keywords = self.keyword_analyzer.find_keywords(paragraph)
         
         if not found_keywords:
@@ -70,8 +93,15 @@ class Handler:
 class TranscriptProcessor:
     def __init__(self, file_path):
         self.file_path = file_path
-        self.document = docx.Document(file_path)
+        self.document = self.read_document()
         self.paragraphs = self.split_paragraphs()
+
+    def read_document(self):
+        '''
+            Returns:
+                The transcript at self.file_path (presumably a docx) as docx.Document object
+        '''
+        return docx.Document(self.file_path)
 
     def split_paragraphs(self):
         '''
@@ -103,8 +133,8 @@ class KeywordAnalyzer:
     def read_file(self):
         '''
             Returns:
-                The keyword excel file at self.file_path saved as a list of dictionaries.
-                Example dictionary: {Keyword: 'Assets', Category: 'Business', ...}
+                The keyword excel file at self.file_path as a list of dictionaries.
+                Example dictionary: {Keyword: 'Assets', Category: 'Financial Metric', ...}
         '''
         return pd.read_excel(self.file_path).to_dict('records')
 
@@ -203,7 +233,7 @@ class DataManager:
     def __init__(self):
         self.data = []
 
-    def add_data(self, **kwargs):
+    def add_data(self, **entry):
         '''
             Args:
                 kwargs: dictionary containing a paragraph, the keyword found in that found paragraph,
